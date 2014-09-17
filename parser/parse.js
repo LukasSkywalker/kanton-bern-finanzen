@@ -23,62 +23,59 @@ var kexcel = require('kexcel');
 
 var _ = require('underscore');
 
-kexcel.open(path.join('input','input.xlsx'), function(err, workbook){
-    var data = [];
-    var nodeData = {};
+kexcel.open(path.join('brig.xlsx'), function(err, workbook){
+    var nodeData = [];
     try {
-    _.each(workbook.sheets, function(sheet){
-        var yeardata = {children:[]};
-        yeardata.year = parseInt( sheet.name );
-
-
-
-        var year = yeardata.year;
-        console.log(sheet.name);
-        console.log(sheet.getCellValue(2,2));
-
-        for(var row = 7; sheet.getCellValue(row,2); row++) {
-            var code = sheet.getCellValue(row,5);
-            var node = yeardata;
-            _.reduce(code, function(memo, d){
-                var c = memo+d;
-                //console.log('Looking for ', c);
-                var childnode = _.find(node.children, function(n) {return n.code == c;});
-                if (!childnode) {
-                    childnode = {code: c, name: sheet.getCellValue(row,6), value: parseInt(sheet.getCellValue(row, 8) ) || 0 };
-                    node.children = node.children || [];
-                    node.children.push(childnode);
-                }
-                node = childnode;
-                return c;
-            },'');
+      var sheet = workbook.sheets[0];
+      console.log
+      var row = 2;
+      while(sheet.getCellValue(row, 1) != undefined) {
+        // executed for each item
+        var subCategoryCode = sheet.getCellValue(row, 1);
+        var categoryCode = parseInt(subCategoryCode.split('.')[0]) - 1;
+        subCategoryCode = categoryCode + subCategoryCode.split('.')[1];
+        var category = sheet.getCellValue(row, 2);
+        var subCategory = sheet.getCellValue(row, 3);
+        if(nodeData[categoryCode] == undefined) {
+          nodeData[categoryCode] = {
+            code: categoryCode + '',
+            values: {},
+            name: category,
+            children: []
+          };
         }
-
-        console.log(year);
-
-        for(row = 7; sheet.getCellValue(row,2); row++) {
-            code = sheet.getCellValue(row,5);
-            node = nodeData;
-            _.reduce(code, function(memo, d){
-                var c = memo+d;
-                //console.log('Looking for ', c);
-                var childnode = _.find(node.children, function(n) {return n.code == c;});
-                if (!childnode) {
-                    childnode = {code: c, values: {} };
-                    node.children = node.children || [];
-                    node.children.push(childnode);
-                }
-                childnode.name = sheet.getCellValue(row,6);
-                childnode.values[year] = parseFloat(sheet.getCellValue(row, 8) ) || 0;
-                node = childnode;
-                return c;
-            },'');
+        var subData = {code: subCategoryCode, name: subCategory, values: {}};
+        var column = 6;
+        while(sheet.getCellValue(1, column) != undefined) {
+          // executed for each year
+          var header = sheet.getCellValue(1, column);
+          var valid = header.indexOf('Rechnung') == 0 && header.indexOf('Aufwand') > 0;
+          if(!valid) {
+            throw "Column Header is invalid: " + header;
+          }
+          var year = header.replace('Rechnung ', '').replace(' Aufwand', '')
+          var value = sheet.getCellValue(row, column);
+          var amount = parseInt(value);
+          if(isNaN(amount)) {
+            amount = 0;
+          }
+          subData.values[year] = amount;
+          if(nodeData[categoryCode].values[year] == undefined) {
+            nodeData[categoryCode].values[year] = 0;
+          }
+          nodeData[categoryCode].values[year] += amount
+          column += 4;
         }
-
-        data.push(yeardata);
-    });
-    } catch (e) {
-        console.log(e);
+        nodeData[categoryCode].children.push(subData);
+        row++;
+      }
+      data = [];
+      for(var node in nodeData) {
+        data.push(nodeData[node]);
+      }
+      nodeData = {children: data};
+    } catch(e) {
+      console.log(e);
     }
 
     /*fs.writeFile(path.join('..','data', 'data.json'), JSON.stringify(data, null, 4), function(){
