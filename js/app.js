@@ -295,7 +295,7 @@ angular.module('ktbe.directives', ['ui.bootstrap'])
                         });
 
                     g.append('g').attr('class', 'bear').append('use')
-                        .attr('xlink:href', '#bear')
+                        //.attr('xlink:href', '#bear')
                         .attr('opacity', 0.2);
 
                     g

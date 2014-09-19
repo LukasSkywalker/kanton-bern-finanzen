@@ -69,7 +69,7 @@ ol.breadcrumb li {
 }
 
 .crest {
-    background-image: url('http://www.fin.be.ch/etc/designs/std/media/logo.gif');
+    /*background-image: url('http://www.fin.be.ch/etc/designs/std/media/logo.gif');*/
     width: 20px;
     height: 45px;
     display: inline-block;
