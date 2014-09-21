@@ -23,66 +23,72 @@ var kexcel = require('kexcel');
 
 var _ = require('underscore');
 
-kexcel.open(path.join('brig.xlsx'), function(err, workbook){
+kexcel.open(path.join('brig.xlsx'), function (err, workbook) {
     var nodeData = [];
     try {
-      var sheet = workbook.sheets[0];
-      console.log
-      var row = 2;
-      while(sheet.getCellValue(row, 1) != undefined) {
-        // executed for each item
-        var subCategoryCode = sheet.getCellValue(row, 1);
-        var categoryCode = parseInt(subCategoryCode.split('.')[0]) - 1;
-        subCategoryCode = categoryCode + subCategoryCode.split('.')[1];
-        var category = sheet.getCellValue(row, 2);
-        var subCategory = sheet.getCellValue(row, 3);
-        if(nodeData[categoryCode] == undefined) {
-          nodeData[categoryCode] = {
-            code: categoryCode + '',
-            values: {},
-            name: category,
-            children: []
-          };
+        var sheet = workbook.sheets[0];
+        console.log
+        var row = 2;
+        while (sheet.getCellValue(row, 1) != undefined) {
+            // executed for each item
+            var subCategoryCode = sheet.getCellValue(row, 1);
+            var categoryCode = parseInt(subCategoryCode.split('.')[0]) - 1;
+            subCategoryCode = categoryCode + subCategoryCode.split('.')[1];
+            var category = sheet.getCellValue(row, 2);
+            var subCategory = sheet.getCellValue(row, 3);
+            if (nodeData[categoryCode] == undefined) {
+                nodeData[categoryCode] = {
+                    code: categoryCode + '',
+                    values: {},
+                    name: category,
+                    children: []
+                };
+            }
+            var subData = {
+                code: subCategoryCode,
+                name: subCategory,
+                values: {}
+            };
+            var column = 6;
+            while (sheet.getCellValue(1, column) != undefined) {
+                // executed for each year
+                var header = sheet.getCellValue(1, column);
+                var valid = header.indexOf('Rechnung') == 0 && header.indexOf('Aufwand') > 0;
+                if (!valid) {
+                    throw "Column Header is invalid: " + header;
+                }
+                var year = header.replace('Rechnung ', '').replace(' Aufwand', '')
+                var value = sheet.getCellValue(row, column);
+                var amount = parseInt(value)/1000;
+                if (isNaN(amount)) {
+                    amount = 0;
+                }
+                subData.values[year] = amount;
+                if (nodeData[categoryCode].values[year] == undefined) {
+                    nodeData[categoryCode].values[year] = 0;
+                }
+                nodeData[categoryCode].values[year] += amount; 
+				column += 4;
+            }
+            nodeData[categoryCode].children.push(subData);
+            row++;
         }
-        var subData = {code: subCategoryCode, name: subCategory, values: {}};
-        var column = 6;
-        while(sheet.getCellValue(1, column) != undefined) {
-          // executed for each year
-          var header = sheet.getCellValue(1, column);
-          var valid = header.indexOf('Rechnung') == 0 && header.indexOf('Aufwand') > 0;
-          if(!valid) {
-            throw "Column Header is invalid: " + header;
-          }
-          var year = header.replace('Rechnung ', '').replace(' Aufwand', '')
-          var value = sheet.getCellValue(row, column);
-          var amount = parseInt(value);
-          if(isNaN(amount)) {
-            amount = 0;
-          }
-          subData.values[year] = amount;
-          if(nodeData[categoryCode].values[year] == undefined) {
-            nodeData[categoryCode].values[year] = 0;
-          }
-          nodeData[categoryCode].values[year] += amount
-          column += 4;
+        data = [];
+        for (var node in nodeData) {
+            data.push(nodeData[node]);
         }
-        nodeData[categoryCode].children.push(subData);
-        row++;
-      }
-      data = [];
-      for(var node in nodeData) {
-        data.push(nodeData[node]);
-      }
-      nodeData = {children: data};
-    } catch(e) {
-      console.log(e);
+        nodeData = {
+            children: data
+        };
+    } catch (e) {
+        console.log(e);
     }
 
     /*fs.writeFile(path.join('..','data', 'data.json'), JSON.stringify(data, null, 4), function(){
         console.log('done!');
     });*/
 
-    fs.writeFile(path.join('..','data', 'data.json'), JSON.stringify(nodeData, null, 4), function(){
+    fs.writeFile(path.join('..', 'data', 'data.json'), JSON.stringify(nodeData, null, 4), function () {
         console.log('done!');
     });
 });
